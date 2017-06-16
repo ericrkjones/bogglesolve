@@ -33,7 +33,7 @@ scores=[
 11 #8
 ]
 pathlist=[]
-wordlist=[]
+wordlist=set()
 
 def getword(array):
 	word = ''
@@ -52,7 +52,7 @@ def buildlist(array, dictionary):
 	if len(matchingwords) !=0:
 		if len(array) >= minlength:
 			if word in matchingwords:
-				wordlist.append(word)
+				wordlist.add(word)
 		if len(matchingwords) > 1:
 			x0=array[len(array)-1][0]
 			y0=array[len(array)-1][1]
