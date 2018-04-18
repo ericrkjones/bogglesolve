@@ -4,13 +4,22 @@
 # Eric Jones
 # First argument is the word list file
 # Second argument is the minimum word length
-# Subsequent arguments should be comma separated rows
+# Subsequent arguments should be comma-separated rows
 # Example:
-# boggle.py dictionary.txt 4 f,i,r,s,t s,e,c,o,n t,h,i,r,d f,o,u,r,t f,i,f,t,h
-
+# bogglesolve dictionary.txt 4 f,i,r,s,t s,e,c,o,n t,h,i,r,d f,o,u,r,t f,i,f,t,h
 
 import sys
 import re
+
+def printhelp():
+	print 'Boggle solver\nEric Jones\n\nbogglesolve <dictionary file> <minimum word length> [<comma-separated row 1> <comma-separated row 2> ...]\n\nFirst argument is the word list file\nSecond argument is the minimum word length\nSubsequent arguments should be comma separated rows\n\nExample:\nbogglesolve dictionary.txt 4 f,i,r,s,t s,e,c,o,n t,h,i,r,d f,o,u,r,t f,i,f,t,h\n'
+
+sort = False
+
+if len(sys.argv) < 4 or "--help" in sys.argv:
+	printhelp()
+	exit(1)
+
 with open(sys.argv[1]) as dictionaryfile:
 	dictionary = set(word.strip().lower() for word in dictionaryfile)
 
@@ -65,6 +74,9 @@ for x in range(len(board)):
 	for y in range(len(board[x])):
 		buildlist([[x,y]], dictionary)
 score=0
+if sort:
+	wordlist = sorted(wordlist)
+
 for word in wordlist:
 	wordscore=scoreword(word)
 	score+=wordscore
