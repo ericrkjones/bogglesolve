@@ -1,36 +1,27 @@
 #!/usr/bin/python
+"""Boggle solver
+Eric Jones
 
-# Boggle solver
-# Eric Jones
-# First argument is the word list file
-# Second argument is the minimum word length
-# Subsequent arguments should be comma-separated rows
-# Example:
-# bogglesolve dictionary.txt 4 f,i,r,s,t s,e,c,o,n t,h,i,r,d f,o,u,r,t f,i,f,t,h
+bogglesolve <dictionary file> <minimum word length> [<comma-separated row 1> <comma-separated row 2> ...]
+
+First argument is the word list file
+Second argument is the minimum word length
+Subsequent arguments should be comma separated rows
+
+Example:
+bogglesolve dictionary.txt 4 f,i,r,s,t s,e,c,o,n t,h,i,r,d f,o,u,r,t f,i,f,t,h
+"""
 
 import sys
 import re
 
-def printhelp():
-	print 'Boggle solver\nEric Jones\n\nbogglesolve <dictionary file> <minimum word length> [<comma-separated row 1> <comma-separated row 2> ...]\n\nFirst argument is the word list file\nSecond argument is the minimum word length\nSubsequent arguments should be comma separated rows\n\nExample:\nbogglesolve dictionary.txt 4 f,i,r,s,t s,e,c,o,n t,h,i,r,d f,o,u,r,t f,i,f,t,h\n'
+# Store script 
+helpstring = __doc__
 
+# Sort output word list
 sort = False
 
-if len(sys.argv) < 4 or "--help" in sys.argv:
-	printhelp()
-	exit(1)
-
-with open(sys.argv[1]) as dictionaryfile:
-	dictionary = set(word.strip().lower() for word in dictionaryfile)
-
-board=[]
-minlength=int(sys.argv[2])
-for row in sys.argv[3:]:
-	board.append(row.split(','))
-print board
-
-
-
+# Word length rubric
 scores=[
 0, #1
 0, #2
@@ -41,23 +32,44 @@ scores=[
 5, #7
 11 #8
 ]
-pathlist=[]
-wordlist=set()
 
-def getword(array):
+# Interpret arguments
+
+# Help
+if len(sys.argv) < 4 or "--help" in sys.argv:
+	print(__doc__)
+	exit(1)
+
+dictionaryfilepath = sys.argv[1]
+minlength = int(sys.argv[2])
+boardinput = sys.argv[3:]
+
+
+# Define functions
+
+def getword(array, board):
+	"""Resolves a list of indices on the board to text."""
 	word = ''
 	for character in array:
 		word += board[character[0]][character[1]]
 	return word
 
-def scoreword(word):
+def scoreword(word, rubric):
+	"""Scores a word based on the rubric.  The word's length is the index of the rubric."""
 	length = min(len(word),8)
-	return scores[length-1]
+	return rubric[length-1]
 
-def buildlist(array, dictionary):
-	word = getword(array)
+def buildlist(array, dictionary, board):
+	"""Searches the board, for words in the dictionary by appending letters surrounding the index, and, if any search chains are promising, recursively searching along those."""
+	# Working data
+	wordlist=set()
+	# Resolve chain of indices to text
+	word = getword(array, board)
+	# Compile a regular expression search for items beginning with the text
 	r = re.compile('^'+word+'.*')
-	matchingwords = filter(r.match, dictionary)
+	# Search the dictionary for all matches
+	matchingwords = list(filter(r.match, dictionary))
+	# Act on matches by following their paths
 	if len(matchingwords) !=0:
 		if len(array) >= minlength:
 			if word in matchingwords:
@@ -68,18 +80,53 @@ def buildlist(array, dictionary):
 			for x in range(max(x0-1,0),min(x0+1,len(board)-1)+1):
 				for y in range(max(y0-1,0),min(y0+1,len(board[x])-1)+1):
 					if [x,y] not in array:
-						buildlist(array + [[x,y]], matchingwords)
+						# Search the new chain link and merge the items it finds with this iteration's set.  
+						wordlist |= buildlist(array + [[x,y]], matchingwords, board)
+	return wordlist
 
-for x in range(len(board)):
-	for y in range(len(board[x])):
-		buildlist([[x,y]], dictionary)
-score=0
+def readboard(csv):
+	board=[]
+	# Build board list
+	for row in csv:
+		board.append(row.split(','))
+	return board
+
+def readwordlist(f):
+	"""Generates a scoring dictionary from a wordlist file."""
+	with open(f) as dictionaryfile:
+		dictionary = set(word.strip().lower() for word in dictionaryfile)
+	return dictionary
+
+def wordsearch(dictionary, board):
+	"""Searches for words starting at each location on the board."""
+	wordlist = set()
+	for x in range(len(board)):
+		for y in range(len(board[x])):
+			wordlist |= buildlist([[x,y]], dictionary, board)
+	return wordlist
+
+
+
+# Read dictionary file
+dictionary=readwordlist(dictionaryfilepath)
+
+# Create board
+board = readboard(boardinput)
+
+# Search for words
+wordlist=wordsearch(dictionary, board)
+
+# Sort list
 if sort:
 	wordlist = sorted(wordlist)
 
+# Score words
+score=0
 for word in wordlist:
-	wordscore=scoreword(word)
+	wordscore=scoreword(word, scores)
 	score+=wordscore
-	print word, wordscore
-print 'Found '+str(len(wordlist))+' words'
-print 'Score: '+str(score)+' points'
+	print(word, wordscore)
+
+# Summarize
+print('Found '+str(len(wordlist))+' words')
+print('Score: '+str(score)+' points')
